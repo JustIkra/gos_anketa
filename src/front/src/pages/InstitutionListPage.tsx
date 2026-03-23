@@ -135,10 +135,11 @@ export function InstitutionListPage() {
 
   const hasFilters = selectedOrgs.length > 0 || searchText !== '';
 
-  const orgOptions = orgs.map((o) => ({
-    value: String(o.id),
-    label: `${o.name} (${o.institution_count})`,
-  }));
+  // Короткие метки для dropdown: "1 Ростовское ТО (14)"
+  const orgOptions = orgs.map((o) => {
+    const short = o.name.replace('территориальное объединение', 'ТО');
+    return { value: String(o.id), label: `${short} (${o.institution_count})` };
+  });
 
   return (
     <Stack gap="md">
@@ -156,25 +157,32 @@ export function InstitutionListPage() {
         )}
       </Group>
 
-      <Group gap="sm" align="end">
-        <TextInput
-          placeholder="Поиск по названию..."
-          leftSection={<IconSearch size={16} />}
-          value={searchText}
-          onChange={(e) => setSearchText(e.currentTarget.value)}
-          rightSection={
-            searchText ? (
-              <ActionIcon
-                variant="subtle"
-                size="sm"
-                onClick={() => setSearchText('')}
-              >
-                <IconX size={14} />
-              </ActionIcon>
-            ) : null
-          }
-          style={{ flex: 1 }}
-        />
+      <Stack gap="xs">
+        <Group gap="sm">
+          <TextInput
+            placeholder="Поиск по названию..."
+            leftSection={<IconSearch size={16} />}
+            value={searchText}
+            onChange={(e) => setSearchText(e.currentTarget.value)}
+            rightSection={
+              searchText ? (
+                <ActionIcon
+                  variant="subtle"
+                  size="sm"
+                  onClick={() => setSearchText('')}
+                >
+                  <IconX size={14} />
+                </ActionIcon>
+              ) : null
+            }
+            style={{ flex: 1 }}
+          />
+          {hasFilters && (
+            <Button variant="subtle" size="sm" onClick={clearFilters}>
+              Сбросить
+            </Button>
+          )}
+        </Group>
         <MultiSelect
           placeholder="Все объединения"
           data={orgOptions}
@@ -182,15 +190,9 @@ export function InstitutionListPage() {
           onChange={setSelectedOrgs}
           clearable
           searchable
-          w={400}
           maxDropdownHeight={300}
         />
-        {hasFilters && (
-          <Button variant="subtle" size="sm" onClick={clearFilters}>
-            Сбросить
-          </Button>
-        )}
-      </Group>
+      </Stack>
 
       {loading ? (
         <Loader />
