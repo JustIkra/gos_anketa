@@ -3,7 +3,6 @@ services:
     build:
       context: ./src/app
       dockerfile: Dockerfile
-      target: prod
     volumes:
       - ./data:/app/data
     env_file:
@@ -15,7 +14,6 @@ services:
     build:
       context: ./src/front
       dockerfile: Dockerfile
-      target: prod
     depends_on:
       - backend
 
