@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ActionIcon,
+  Badge,
   Button,
   Group,
   Loader,
@@ -9,13 +10,15 @@ import {
   Select,
   Stack,
   Table,
+  Text,
   TextInput,
   Title,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconPlus, IconSearch, IconTrash, IconX } from '@tabler/icons-react';
 import { useAuth } from '../auth/AuthContext';
+import { useDebounce } from '../hooks/useDebounce';
 import type { Institution, TerritorialOrg } from '../types';
 import {
   getInstitutions,
@@ -31,7 +34,10 @@ export function InstitutionListPage() {
   const [orgs, setOrgs] = useState<TerritorialOrg[]>([]);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const debouncedSearch = useDebounce(searchText, 300);
 
   const [modalOpened, { open: openModal, close: closeModal }] =
     useDisclosure(false);
@@ -46,7 +52,7 @@ export function InstitutionListPage() {
     setLoading(true);
     try {
       const toId = selectedOrg ? Number(selectedOrg) : undefined;
-      const data = await getInstitutions(toId);
+      const data = await getInstitutions(toId, debouncedSearch || undefined);
       setInstitutions(data);
     } catch (err) {
       notifications.show({
@@ -58,14 +64,12 @@ export function InstitutionListPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedOrg]);
+  }, [selectedOrg, debouncedSearch]);
 
   useEffect(() => {
     getTerritorialOrgs()
       .then(setOrgs)
-      .catch(() => {
-        // Orgs will remain empty
-      });
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -123,15 +127,27 @@ export function InstitutionListPage() {
     }
   };
 
+  const clearFilters = () => {
+    setSelectedOrg(null);
+    setSearchText('');
+  };
+
+  const hasFilters = selectedOrg !== null || searchText !== '';
+
   const orgOptions = orgs.map((o) => ({
     value: String(o.id),
-    label: o.name,
+    label: `${o.name} (${o.institution_count})`,
   }));
 
   return (
     <Stack gap="md">
       <Group justify="space-between">
-        <Title order={3}>Учреждения</Title>
+        <Group gap="sm">
+          <Title order={3}>Учреждения</Title>
+          <Badge variant="light" size="lg">
+            {institutions.length}
+          </Badge>
+        </Group>
         {isAdmin && (
           <Button leftSection={<IconPlus size={16} />} onClick={openModal}>
             Добавить учреждение
@@ -139,15 +155,40 @@ export function InstitutionListPage() {
         )}
       </Group>
 
-      <Select
-        placeholder="Все территориальные объединения"
-        data={orgOptions}
-        value={selectedOrg}
-        onChange={setSelectedOrg}
-        clearable
-        searchable
-        w={400}
-      />
+      <Group gap="sm" align="end">
+        <TextInput
+          placeholder="Поиск по названию..."
+          leftSection={<IconSearch size={16} />}
+          value={searchText}
+          onChange={(e) => setSearchText(e.currentTarget.value)}
+          rightSection={
+            searchText ? (
+              <ActionIcon
+                variant="subtle"
+                size="sm"
+                onClick={() => setSearchText('')}
+              >
+                <IconX size={14} />
+              </ActionIcon>
+            ) : null
+          }
+          style={{ flex: 1 }}
+        />
+        <Select
+          placeholder="Все объединения"
+          data={orgOptions}
+          value={selectedOrg}
+          onChange={setSelectedOrg}
+          clearable
+          searchable
+          w={350}
+        />
+        {hasFilters && (
+          <Button variant="subtle" size="sm" onClick={clearFilters}>
+            Сбросить
+          </Button>
+        )}
+      </Group>
 
       {loading ? (
         <Loader />
@@ -190,8 +231,12 @@ export function InstitutionListPage() {
             ))}
             {institutions.length === 0 && (
               <Table.Tr>
-                <Table.Td colSpan={isAdmin ? 4 : 3} ta="center" c="dimmed">
-                  Нет учреждений
+                <Table.Td colSpan={isAdmin ? 4 : 3} ta="center" c="dimmed" py="xl">
+                  <Text size="sm">
+                    {hasFilters
+                      ? 'Ничего не найдено. Попробуйте изменить фильтры.'
+                      : 'Нет учреждений'}
+                  </Text>
                 </Table.Td>
               </Table.Tr>
             )}
