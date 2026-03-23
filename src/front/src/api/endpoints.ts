@@ -157,7 +157,7 @@ export function search(query: string): Promise<SearchResult[]> {
 export function importArchive(file: File): Promise<{ message: string }> {
   const formData = new FormData();
   formData.append('file', file);
-  return apiRequest('/api/import', {
+  return apiRequest('/api/import/archive', {
     method: 'POST',
     body: formData,
   });
