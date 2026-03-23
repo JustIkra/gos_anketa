@@ -12,8 +12,6 @@ services:
   frontend:
     build:
       target: dev
-    ports:
-      - "5173:5173"
     volumes:
       - ./src/front:/app
       - front_node_modules:/app/node_modules
