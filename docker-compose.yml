@@ -1,0 +1,24 @@
+services:
+  backend:
+    build:
+      context: ./src/app
+      dockerfile: Dockerfile
+      target: prod
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - DATABASE_PATH=/app/data/gos_anketa.db
+
+  frontend:
+    build:
+      context: ./src/front
+      dockerfile: Dockerfile
+      target: prod
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend

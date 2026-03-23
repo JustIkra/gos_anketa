@@ -1,0 +1,21 @@
+[project]
+name = "gos-anketa-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "python-docx>=1.1.0",
+    "py7zr>=0.22.0",
+    "bcrypt>=4.0.0",
+    "python-jose[cryptography]>=3.3.0",
+    "pydantic-settings>=2.7.0",
+    "python-multipart>=0.0.20",
+]
+
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
