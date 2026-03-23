@@ -65,11 +65,15 @@ export function deleteTerritorialOrg(id: number): Promise<void> {
 // ── Institutions ──────────────────────────────────────────────────────────────
 
 export function getInstitutions(
-  toId?: number,
+  toIds?: number[],
   q?: string,
 ): Promise<Institution[]> {
   const params = new URLSearchParams();
-  if (toId !== undefined) params.set('to_id', String(toId));
+  if (toIds && toIds.length > 0) {
+    for (const id of toIds) {
+      params.append('to_id', String(id));
+    }
+  }
   if (q) params.set('q', q);
   const qs = params.toString();
   return apiRequest(`/api/institutions${qs ? `?${qs}` : ''}`);

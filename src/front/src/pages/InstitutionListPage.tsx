@@ -7,6 +7,7 @@ import {
   Group,
   Loader,
   Modal,
+  MultiSelect,
   Select,
   Stack,
   Table,
@@ -33,7 +34,7 @@ export function InstitutionListPage() {
 
   const [orgs, setOrgs] = useState<TerritorialOrg[]>([]);
   const [institutions, setInstitutions] = useState<Institution[]>([]);
-  const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
+  const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -51,8 +52,8 @@ export function InstitutionListPage() {
   const loadInstitutions = useCallback(async () => {
     setLoading(true);
     try {
-      const toId = selectedOrg ? Number(selectedOrg) : undefined;
-      const data = await getInstitutions(toId, debouncedSearch || undefined);
+      const toIds = selectedOrgs.length > 0 ? selectedOrgs.map(Number) : undefined;
+      const data = await getInstitutions(toIds, debouncedSearch || undefined);
       setInstitutions(data);
     } catch (err) {
       notifications.show({
@@ -64,7 +65,7 @@ export function InstitutionListPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedOrg, debouncedSearch]);
+  }, [selectedOrgs, debouncedSearch]);
 
   useEffect(() => {
     getTerritorialOrgs()
@@ -128,11 +129,11 @@ export function InstitutionListPage() {
   };
 
   const clearFilters = () => {
-    setSelectedOrg(null);
+    setSelectedOrgs([]);
     setSearchText('');
   };
 
-  const hasFilters = selectedOrg !== null || searchText !== '';
+  const hasFilters = selectedOrgs.length > 0 || searchText !== '';
 
   const orgOptions = orgs.map((o) => ({
     value: String(o.id),
@@ -174,14 +175,15 @@ export function InstitutionListPage() {
           }
           style={{ flex: 1 }}
         />
-        <Select
+        <MultiSelect
           placeholder="Все объединения"
           data={orgOptions}
-          value={selectedOrg}
-          onChange={setSelectedOrg}
+          value={selectedOrgs}
+          onChange={setSelectedOrgs}
           clearable
           searchable
-          w={350}
+          w={400}
+          maxDropdownHeight={300}
         />
         {hasFilters && (
           <Button variant="subtle" size="sm" onClick={clearFilters}>

@@ -25,15 +25,16 @@ def _now() -> str:
 
 @router.get("", response_model=list[InstitutionResponse])
 def list_institutions(
-    to_id: int | None = Query(None, description="Filter by territorial org id"),
+    to_id: list[int] | None = Query(None, description="Filter by territorial org ids"),
     q: str | None = Query(None, description="Search in full/short name"),
 ):
     clauses: list[str] = []
     params: list = []
 
-    if to_id is not None:
-        clauses.append("i.territorial_org_id = ?")
-        params.append(to_id)
+    if to_id:
+        placeholders = ",".join("?" for _ in to_id)
+        clauses.append(f"i.territorial_org_id IN ({placeholders})")
+        params.extend(to_id)
     if q:
         clauses.append("(i.full_name LIKE ? OR i.short_name LIKE ?)")
         like = f"%{q}%"
