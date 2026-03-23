@@ -1,6 +1,8 @@
 """Import institution data from DOCX / 7z archives into the database."""
 
 import os
+import re
+import subprocess
 import tempfile
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -278,3 +280,144 @@ def import_docx_to_institution(file_path: str, institution_id: int) -> None:
             )
 
         rebuild_search_index(db, institution_id)
+
+
+def _doc_to_text(file_path: str) -> str:
+    """Convert a .doc file to plain text using antiword."""
+    result = subprocess.run(
+        ["antiword", "-w", "0", file_path],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"antiword failed: {result.stderr}")
+    return result.stdout
+
+
+def import_registry(file_path: str) -> dict:
+    """Import the territorial orgs registry (.doc) with institutions.
+
+    Parses antiword output which contains TO headers and pipe-delimited
+    table rows: |number|full_name|short_name|
+
+    Returns summary dict.
+    """
+    text = _doc_to_text(file_path)
+    lines = text.split("\n")
+
+    to_header_re = re.compile(r"территориальное объединение", re.IGNORECASE)
+    # Match table rows: |number|full_name|short_name|
+    table_row_re = re.compile(r"^\|?\s*(\d{1,3})\s*\|(.+?)\|(.+?)\|")
+    # Continuation row for multiline cells: |  |text|  |
+    continuation_re = re.compile(r"^\|\s*\|(.+?)\|(.+?)\|")
+
+    groups: list[tuple[str, list[tuple[str, str]]]] = []
+    current_to: str | None = None
+    current_institutions: list[tuple[str, str]] = []
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Check for TO header (not inside a table row)
+        if to_header_re.search(stripped) and "|" not in stripped:
+            if current_to is not None:
+                groups.append((current_to, current_institutions))
+            # Normalize whitespace in TO name
+            current_to = " ".join(stripped.split())
+            current_institutions = []
+            continue
+
+        if current_to is None:
+            continue
+
+        # Check for table data row
+        m = table_row_re.match(line.lstrip())
+        if m:
+            full_name = m.group(2).strip()
+            short_name = m.group(3).strip()
+            current_institutions.append((full_name, short_name))
+            continue
+
+        # Check for continuation row (multiline cell)
+        m = continuation_re.match(line.lstrip())
+        if m and current_institutions:
+            extra_full = m.group(1).strip()
+            extra_short = m.group(2).strip()
+            prev_full, prev_short = current_institutions[-1]
+            if extra_full:
+                prev_full = prev_full + " " + extra_full
+            if extra_short:
+                prev_short = prev_short + " " + extra_short
+            current_institutions[-1] = (prev_full.strip(), prev_short.strip())
+
+    if current_to is not None:
+        groups.append((current_to, current_institutions))
+
+    # Insert into DB
+    now = _now()
+    imported = 0
+    skipped = 0
+    to_created = 0
+
+    with get_db() as db:
+        for to_name, institutions in groups:
+            # Find or create territorial org
+            row = db.execute(
+                "SELECT id FROM territorial_orgs WHERE name = ?", (to_name,),
+            ).fetchone()
+            if not row:
+                # Try partial match
+                row = db.execute(
+                    "SELECT id FROM territorial_orgs WHERE name LIKE ?",
+                    (f"%{to_name.strip()}%",),
+                ).fetchone()
+            if row:
+                to_id = row["id"]
+            else:
+                max_sort = db.execute(
+                    "SELECT COALESCE(MAX(sort_order), 0) as m FROM territorial_orgs"
+                ).fetchone()["m"]
+                cur = db.execute(
+                    "INSERT INTO territorial_orgs (name, sort_order, created_at, updated_at) "
+                    "VALUES (?, ?, ?, ?)",
+                    (to_name, max_sort + 1, now, now),
+                )
+                to_id = cur.lastrowid
+                to_created += 1
+
+            for full_name, short_name in institutions:
+                # Check if institution already exists
+                existing = db.execute(
+                    "SELECT id FROM institutions WHERE short_name = ? "
+                    "AND territorial_org_id = ?",
+                    (short_name, to_id),
+                ).fetchone()
+                if existing:
+                    skipped += 1
+                    continue
+
+                cur = db.execute(
+                    "INSERT INTO institutions "
+                    "(territorial_org_id, full_name, short_name, created_at, updated_at) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (to_id, full_name, short_name, now, now),
+                )
+                inst_id = cur.lastrowid
+                # Create empty contacts
+                db.execute(
+                    "INSERT INTO contacts "
+                    "(institution_id, address, phone, fax, email, website, updated_at) "
+                    "VALUES (?, '', '', '', '', '', ?)",
+                    (inst_id, now),
+                )
+                rebuild_search_index(db, inst_id)
+                imported += 1
+
+    return {
+        "imported": imported,
+        "skipped": skipped,
+        "to_created": to_created,
+        "total_groups": len(groups),
+        "message": f"Импортировано {imported} учреждений, "
+                   f"пропущено {skipped} (уже существуют), "
+                   f"создано ТО: {to_created}",
+    }

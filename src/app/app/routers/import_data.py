@@ -4,7 +4,11 @@ import tempfile
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 
 from app.dependencies import require_admin
-from app.services.import_service import import_archive, import_docx_to_institution
+from app.services.import_service import (
+    import_archive,
+    import_docx_to_institution,
+    import_registry,
+)
 
 router = APIRouter(prefix="/api/import", tags=["import"])
 
@@ -58,3 +62,29 @@ async def upload_docx(
             raise HTTPException(status_code=500, detail=f"Import failed: {exc}")
 
     return {"detail": "DOCX imported successfully."}
+
+
+@router.post("/registry")
+async def upload_registry(
+    file: UploadFile = File(...),
+    _role: str = Depends(require_admin),
+):
+    """Import institutions registry from a .doc file (territorial orgs list)."""
+    if not file.filename or not file.filename.lower().endswith(".doc"):
+        raise HTTPException(
+            status_code=400,
+            detail="Принимаются только файлы .doc",
+        )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        doc_path = os.path.join(tmpdir, file.filename)
+        contents = await file.read()
+        with open(doc_path, "wb") as f:
+            f.write(contents)
+
+        try:
+            result = import_registry(doc_path)
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Ошибка импорта: {exc}")
+
+    return result

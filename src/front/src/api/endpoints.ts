@@ -162,3 +162,12 @@ export function importArchive(file: File): Promise<{ message: string }> {
     body: formData,
   });
 }
+
+export function importRegistry(file: File): Promise<{ message: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return apiRequest('/api/import/registry', {
+    method: 'POST',
+    body: formData,
+  });
+}
