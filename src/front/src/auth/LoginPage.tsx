@@ -44,7 +44,7 @@ export function LoginPage() {
         <form onSubmit={handleSubmit}>
           <Stack gap="md">
             <Center>
-              <Title order={2}>ГосАнкета</Title>
+              <Title order={2}>анкета.донспо.рф</Title>
             </Center>
 
             {error && (

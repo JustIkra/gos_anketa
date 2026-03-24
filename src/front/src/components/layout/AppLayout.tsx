@@ -86,7 +86,7 @@ export function AppLayout() {
               hiddenFrom="sm"
               size="sm"
             />
-            <Title order={3}>ГосАнкета</Title>
+            <Title order={3}>анкета.донспо.рф</Title>
           </Group>
           <Group>
             <Badge
