@@ -26,6 +26,7 @@ export interface PersonnelMember {
   full_name: string;
   work_phone: string;
   mobile_phone: string;
+  email: string;
   sort_order: number;
 }
 

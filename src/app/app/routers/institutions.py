@@ -88,7 +88,7 @@ def get_institution(institution_id: int):
         ).fetchone()
 
         personnel_rows = db.execute(
-            "SELECT position, full_name, work_phone, mobile_phone, sort_order "
+            "SELECT position, full_name, work_phone, mobile_phone, email, sort_order "
             "FROM personnel WHERE institution_id = ? ORDER BY sort_order",
             (institution_id,),
         ).fetchall()

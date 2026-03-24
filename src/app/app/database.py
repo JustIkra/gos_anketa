@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS personnel (
     full_name      TEXT    NOT NULL,
     work_phone     TEXT    DEFAULT '',
     mobile_phone   TEXT    DEFAULT '',
+    email          TEXT    DEFAULT '',
     sort_order     INTEGER DEFAULT 0,
     updated_at     TEXT    NOT NULL
 );
@@ -114,6 +115,12 @@ def init_db() -> None:
     conn = sqlite3.connect(db_path)
     conn.executescript(_SCHEMA_SQL)
     conn.executescript(_FTS_SQL)
+
+    # Migrations for existing databases
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(personnel)").fetchall()}
+    if "email" not in cols:
+        conn.execute("ALTER TABLE personnel ADD COLUMN email TEXT DEFAULT ''")
+        conn.commit()
 
     # Seed default passwords if absent
     cur = conn.execute("SELECT COUNT(*) FROM settings WHERE key='admin_password_hash'")

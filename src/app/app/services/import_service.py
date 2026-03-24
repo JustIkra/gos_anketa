@@ -42,12 +42,12 @@ def rebuild_search_index(db, institution_id: int) -> None:
         ])
 
     personnel = db.execute(
-        "SELECT position, full_name, work_phone, mobile_phone "
+        "SELECT position, full_name, work_phone, mobile_phone, email "
         "FROM personnel WHERE institution_id = ?",
         (institution_id,),
     ).fetchall()
     for p in personnel:
-        parts.extend([p["position"], p["full_name"], p["work_phone"], p["mobile_phone"]])
+        parts.extend([p["position"], p["full_name"], p["work_phone"], p["mobile_phone"], p["email"]])
 
     programs = db.execute(
         "SELECT code, specialty_name FROM programs WHERE institution_id = ?",
@@ -95,9 +95,10 @@ def _insert_parsed_institution(db, territorial_org_id: int, parsed) -> int:
         db.execute(
             "INSERT INTO personnel "
             "(institution_id, position, full_name, work_phone, mobile_phone, "
-            "sort_order, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "email, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (inst_id, p.get("position", ""), p.get("full_name", ""),
-             p.get("work_phone", ""), p.get("mobile_phone", ""), idx, now),
+             p.get("work_phone", ""), p.get("mobile_phone", ""),
+             p.get("email", ""), idx, now),
         )
 
     # Programs
@@ -257,9 +258,10 @@ def import_docx_to_institution(file_path: str, institution_id: int) -> None:
             db.execute(
                 "INSERT INTO personnel "
                 "(institution_id, position, full_name, work_phone, mobile_phone, "
-                "sort_order, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "email, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (institution_id, p.get("position", ""), p.get("full_name", ""),
-                 p.get("work_phone", ""), p.get("mobile_phone", ""), idx, now),
+                 p.get("work_phone", ""), p.get("mobile_phone", ""),
+                 p.get("email", ""), idx, now),
             )
 
         # Replace programs

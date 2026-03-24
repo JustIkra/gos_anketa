@@ -64,6 +64,7 @@ class PersonnelMember(BaseModel):
     full_name: str
     work_phone: str = ""
     mobile_phone: str = ""
+    email: str = ""
     sort_order: int = 0
 
 

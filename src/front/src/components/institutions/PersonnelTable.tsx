@@ -22,6 +22,7 @@ function emptyMember(sortOrder: number): PersonnelMember {
     full_name: '',
     work_phone: '',
     mobile_phone: '',
+    email: '',
     sort_order: sortOrder,
   };
 }
@@ -64,6 +65,7 @@ export function PersonnelTable({ data, onSave, loading }: PersonnelTableProps) {
             <Table.Th>ФИО</Table.Th>
             <Table.Th>Рабочий телефон</Table.Th>
             <Table.Th>Мобильный телефон</Table.Th>
+            <Table.Th>Эл. почта</Table.Th>
             <Table.Th w={50} />
           </Table.Tr>
         </Table.Thead>
@@ -115,6 +117,17 @@ export function PersonnelTable({ data, onSave, loading }: PersonnelTableProps) {
                 />
               </Table.Td>
               <Table.Td>
+                <TextInput
+                  value={row.email}
+                  onChange={(e) =>
+                    updateField(index, 'email', e.currentTarget.value)
+                  }
+                  variant="unstyled"
+                  size="sm"
+                  placeholder="Эл. почта"
+                />
+              </Table.Td>
+              <Table.Td>
                 <ActionIcon
                   color="red"
                   variant="subtle"
@@ -128,7 +141,7 @@ export function PersonnelTable({ data, onSave, loading }: PersonnelTableProps) {
           ))}
           {rows.length === 0 && (
             <Table.Tr>
-              <Table.Td colSpan={5} ta="center" c="dimmed">
+              <Table.Td colSpan={6} ta="center" c="dimmed">
                 Нет записей
               </Table.Td>
             </Table.Tr>

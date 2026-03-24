@@ -39,9 +39,9 @@ def bulk_replace_personnel(
             db.execute(
                 "INSERT INTO personnel "
                 "(institution_id, position, full_name, work_phone, mobile_phone, "
-                "sort_order, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "email, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (institution_id, member.position, member.full_name,
-                 member.work_phone, member.mobile_phone, sort, now),
+                 member.work_phone, member.mobile_phone, member.email, sort, now),
             )
 
     return body
